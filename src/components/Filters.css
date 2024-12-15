@@ -1,0 +1,53 @@
+.filters-container {
+    background-color: white;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 1rem;
+  }
+  
+  .filters-wrapper {
+    max-width: 60rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .filter-select {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.25rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .apply-button,
+  .clear-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid;
+  }
+  
+  .apply-button {
+    color: black;
+    border-color: #E37547;
+  }
+  
+  .clear-button {
+    color: black;
+    border-color: #E37547;
+  }
+  
+  /* Optional hover states */
+  .filter-select:hover {
+    border-color: #d1d5db;
+  }
+  
+  .apply-button:hover {
+    background-color: #E37547;
+  }
+  
+  .clear-button:hover {
+    background-color: #E37547;
+  }

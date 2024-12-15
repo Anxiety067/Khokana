@@ -1,0 +1,4 @@
+{"type":"FeatureCollection", "features": [
+{"type":"Feature","geometry":{"type":"Point","coordinates":[85.2994,27.63541]},"properties":{"name":"Lidhansa Pasa Pucha","id":9147,"type":"place","sub_type":"community_centre","address":"Lalitpur-21, Lalitpur, Bagmati","searchid":"66617559c241ac90af6a554a","icon_type":"community_centre"}},
+{"type":"Feature","geometry":{"type":"Point","coordinates":[85.30032,27.63611]},"properties":{"name":"Khokana Women Awareness Society","id":323307,"type":"place","sub_type":"community_centre","address":"Lalitpur-21, Lalitpur, Bagmati","searchid":"668b7df103662b7e49f93585","icon_type":"community_centre"}}
+]}

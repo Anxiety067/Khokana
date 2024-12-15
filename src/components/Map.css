@@ -1,0 +1,90 @@
+.map-container {
+  flex: 1;
+  background-color: #f7fafc;
+  padding: 0.5rem;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.5rem;
+}
+
+.maplibre-custom-attribution img {
+  transition: opacity 0.2s;
+}
+
+.maplibre-custom-attribution img:hover {
+  opacity: 0.8;
+}
+
+.custom-marker {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.community-center-marker {
+  cursor: pointer;
+}
+
+.community-center-marker i {
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.5));
+}
+
+.custom-popup {
+  padding: 10px;
+  max-width: 200px;
+}
+
+.custom-popup h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+.custom-popup p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.museum-marker {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.place-of-worship-marker {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.satellite-toggle {
+  background: white;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.satellite-toggle:hover {
+  background: #f0f0f0;
+}
+
+.satellite-toggle.satellite-active {
+  background: #e0e0e0;
+}
+
+.satellite-toggle img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.maplibre-gl-ctrl-group {
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
