@@ -13,16 +13,17 @@ function App() {
     roadNetwork: false,
     waterResources: false,
     parcelLayer: false,
-    buildingFootprint: false
+    buildingFootprint: false,
+    historicalPlaces: false
   });
 
   const [selectedFilters, setSelectedFilters] = useState({
-    communalPlace: '',
+    cadastralMap: '',
     landCategory: ''
   });
 
   const [appliedFilters, setAppliedFilters] = useState({
-    communalPlace: '',
+    cadastralMap: '',
     landCategory: ''
   });
 
@@ -46,11 +47,11 @@ function App() {
 
   const handleFilterClear = () => {
     setSelectedFilters({
-      communalPlace: '',
+      cadastralMap: '',
       landCategory: ''
     });
     setAppliedFilters({
-      communalPlace: '',
+      cadastralMap: '',
       landCategory: ''
     });
   };
@@ -78,6 +79,7 @@ function App() {
                 waterResourcesVisible={vectorLayers.waterResources}
                 parcelLayerVisible={vectorLayers.parcelLayer}
                 buildingFootprintVisible={vectorLayers.buildingFootprint}
+                historicalPlacesVisible={vectorLayers.historicalPlaces}
                 activeFilters={appliedFilters} 
               />
               <Statistics 

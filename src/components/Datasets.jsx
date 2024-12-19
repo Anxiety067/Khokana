@@ -1,34 +1,12 @@
+// components/Datasets.jsx
 import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 
 const Datasets = () => {
   const [csvData, setCsvData] = useState(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const rowsPerPage = 12;
-
-  // Custom web font for Devanagari script
-  const NepaliFont = () => (
-    <style jsx global>{`
-      @font-face {
-        font-family: 'Noto Serif Devanagari';
-        src: url('/fonts/NotoSerifDevanagari-Regular.woff2') format('woff2'),
-             url('/fonts/NotoSerifDevanagari-Regular.woff') format('woff');
-        font-weight: 400;
-        font-style: normal;
-      }
-      
-      .nepali-text {
-        font-family: 'Noto Serif Devanagari', 'Preeti', sans-serif;
-        font-feature-settings: "palt"; /* Proportional alternate for better Devanagari rendering */
-      }
-    `}</style>
-  );
-
-  // Unicode normalization function
-  const normalizeNepaliText = (text) => {
-    return text ? text.normalize('NFC') : '';
-  };
+  const [currentPage, setCurrentPage] = useState(0); // To track the current page
+  const [searchQuery, setSearchQuery] = useState(""); // To track the search query
+  const rowsPerPage = 12; // Number of rows per page
 
   useEffect(() => {
     // Load CSV file from the public folder
@@ -97,9 +75,6 @@ const Datasets = () => {
 
   return (
     <div className="p-6">
-      {/* Add Nepali web font */}
-      <NepaliFont />
-
       {/* Flex container for buttons and search bar */}
       <div className="flex justify-between items-center mb-4">
         <div className="flex items-center space-x-4">
@@ -138,16 +113,13 @@ const Datasets = () => {
           <div className="overflow-x-auto">
             <table
               className="min-w-full border"
-              style={{ fontFamily: "'Noto Serif Devanagari', Preeti, sans-serif" }}
+              style={{ fontFamily: "Preeti, sans-serif" }}
             >
               <thead>
                 <tr>
                   {Object.keys(csvData[0]).map((header, index) => (
-                    <th 
-                      key={index} 
-                      className="border px-4 py-2 bg-gray-50 nepali-text"
-                    >
-                      {normalizeNepaliText(header)}
+                    <th key={index} className="border px-4 py-2 bg-gray-50">
+                      {header}
                     </th>
                   ))}
                 </tr>
@@ -156,11 +128,8 @@ const Datasets = () => {
                 {getCurrentRows().map((row, rowIndex) => (
                   <tr key={rowIndex}>
                     {Object.values(row).map((cell, cellIndex) => (
-                      <td 
-                        key={cellIndex} 
-                        className="border px-4 py-2 nepali-text"
-                      >
-                        {normalizeNepaliText(cell)}
+                      <td key={cellIndex} className="border px-4 py-2">
+                        {cell}
                       </td>
                     ))}
                   </tr>
@@ -172,7 +141,7 @@ const Datasets = () => {
           {/* Pagination Controls */}
           <div className="mt-4 flex justify-between items-center">
             <div>
-              Showing {(currentPage * rowsPerPage) + 1} to{" "}
+              Showing {currentPage * rowsPerPage + 1} to{" "}
               {Math.min((currentPage + 1) * rowsPerPage, filteredData().length)} of{" "}
               {filteredData().length} entries
             </div>

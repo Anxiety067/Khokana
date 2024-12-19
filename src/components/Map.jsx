@@ -1,8 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import maplibre from "maplibre-gl";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArtstation } from "@fortawesome/free-brands-svg-icons";
 import "./Map.css";
 
 const SATELLITE_STYLE_URL =
@@ -11,9 +9,50 @@ const GALLI_MAPS_STYLE_URL =
   "https://map-init.gallimap.com/styles/light/style.json?accessToken=4ce1a22b-3b8b-4eeb-ba2f-51cb7448f559";
 const WARD_BOUNDARY_GEOJSON = "/merge_ward.json";
 const ROAD_NETWORK_GEOJSON = "/Road.json";
-const PARCEL_GEOJSON = "/connecte_joine.geojson";
+const PARCEL_GEOJSON = "/Finally_connected-last.geojson";
 const BUILDING_FOOTPRINT_GEOJSON = "/building_khokana.json";
 const WATER_RESOURCES_GEOJSON = "/water.json";
+const HISTORICAL_PLACES_GEOJSON = "/historical.geojson";
+const KHOKANA_CONFIG = {
+  tileUrl: "http://tiles.gallimap.com/public.khokana/{z}/{x}/{y}.pbf",
+  sourceLayer: "public.khokana",
+  center: [85.29322814941406, 27.641535758972168],
+  bounds: [
+    85.2823257446289,
+    27.62953758239746,
+    85.30413055419922,
+    27.653533935546875,
+  ],
+  minZoom: 0,
+  maxZoom: 22,
+};
+const SAINBU_CONFIG = {
+  tileUrl: "http://tiles.gallimap.com/public.sainbu/{z}/{x}/{y}.pbf",
+  sourceLayer: "public.sainbu",
+  center: [85.30310440063477, 27.648791313171387],
+  bounds: [
+    85.29135131835938,
+    27.631587982177734,
+    85.31485748291016,
+    27.66599464416504
+  ],
+  minZoom: 0,
+  maxZoom: 22
+};
+
+const BUNGAMATI_CONFIG = {
+  tileUrl: "http://tiles.gallimap.com/public.bungamati/{z}/{x}/{y}.pbf",
+  sourceLayer: "public.bungamati",
+  center: [85.30072021484375, 27.61996555328369],
+  bounds: [
+    85.2900161743164,
+    27.60451889038086,
+    85.3114242553711,
+    27.635412216186523,
+  ],
+  minZoom: 0,
+  maxZoom: 22,
+};
 
 // Custom Satellite Control Class
 class SatelliteControl {
@@ -69,24 +108,12 @@ const Map = ({
   parcelLayerVisible,
   buildingFootprintVisible,
   waterResourcesVisible,
+  historicalPlacesVisible,
   activeFilters,
 }) => {
   const mapContainer = useRef(null);
   const [mapInstance, setMapInstance] = useState(null);
-  const markersRef = useRef([]);
   const [isSatellite, setIsSatellite] = useState(false);
-
-  // Memoized clearMarkers function
-  const clearMarkers = useCallback(() => {
-    if (markersRef.current.length > 0) {
-      markersRef.current.forEach((marker) => {
-        if (marker && marker.remove) {
-          marker.remove();
-        }
-      });
-      markersRef.current = [];
-    }
-  }, []);
 
   // Initialize map
   useEffect(() => {
@@ -107,15 +134,47 @@ const Map = ({
         "poi_z16",
         "poi_z17",
         "poi_z18",
-        "poi_transit",
+        "poi_transit"
       ];
 
       layersToHide.forEach((layerId) => {
         if (map.getLayer(layerId)) {
-          // Check if the layer exists
-          map.setLayoutProperty(layerId, "visibility", "none"); // Hide the layer
+          map.setLayoutProperty(layerId, "visibility", "none");
         }
       });
+
+      // Add temple POI layer
+      if (map.getStyle() && !map.getLayer('poi_temple')) {
+        map.addLayer({
+          "filter": [
+            "all",
+            ["==", "class", "place_of_worship"]
+          ],
+          "id": "poi_temple",
+          "layout": {
+            "icon-image": "{icon_type}",
+            "icon-size": 0.7,
+            "text-anchor": "top",
+            "text-field": "{name}",
+            "text-font": [
+              "Roboto Condensed Italic"
+            ],
+            "text-offset": [0, 0.9],
+            "text-size": 10,
+            "text-transform": "uppercase",
+            "visibility": "visible"
+          },
+          "minzoom": 14,
+          "paint": {
+            "text-halo-blur": 0.5,
+            "text-halo-color": "#ffffff",
+            "text-halo-width": 1
+          },
+          "source": "gallitiles",
+          "source-layer": "poi",
+          "type": "symbol"
+        });
+      }
     });
 
     const navControl = new maplibre.NavigationControl();
@@ -166,7 +225,6 @@ const Map = ({
     });
 
     return () => {
-      clearMarkers();
       if (map) {
         try {
           map.remove();
@@ -175,7 +233,7 @@ const Map = ({
         }
       }
     };
-  }, [clearMarkers, isSatellite]);
+  }, [isSatellite]);
 
   useEffect(() => {
     if (mapInstance) {
@@ -184,121 +242,150 @@ const Map = ({
       );
     }
   }, [isSatellite, mapInstance]);
-
-  // Handle communal places with improved performance
+  
+  // Watch for cadastral map filter changes
   useEffect(() => {
+    // Guard clause - only proceed if mapInstance exists
     if (!mapInstance) return;
-
-    const addMarkers = (data, options) => {
-      // Clear existing markers before adding new ones
-      clearMarkers();
-
-      const newMarkers = data.features.map((feature) => {
-        const coordinates = feature.geometry.coordinates;
-        const properties = feature.properties;
-
-        const markerElement = document.createElement("div");
-        markerElement.className = `custom-marker ${options.markerClass}`;
-
-        if (options.icon === "art") {
-          markerElement.innerHTML = `<i class="fab fa-artstation" style="color: #FFA500; font-size: 20px;"></i>`;
-        } else if (options.icon === "community") {
-          markerElement.innerHTML = `<i class="fas fa-people-arrows" style="color: #4CAF50; font-size: 20px;"></i>`;
-        } else if (options.icon === "museum") {
-          markerElement.innerHTML = `<i class="fas fa-museum" style="color: #9c27b0; font-size: 20px;"></i>`;
-        } else if (options.icon === "place_of_worship") {
-          markerElement.innerHTML = `<i class="fas fa-church" style="color: #8b4513; font-size: 20px;"></i>`;
-        }
-
-        // Create marker with popup
-        const marker = new maplibre.Marker({
-          element: markerElement,
-          anchor: "bottom",
-        })
-          .setLngLat(coordinates)
-          .setPopup(
-            new maplibre.Popup({ offset: 25 }).setHTML(`
-              <div class="custom-popup">
-                <h3>${properties.name || options.defaultName}</h3>
-                <p>${properties.description || ""}</p>
-                <p>Type: ${properties.type || options.type}</p>
-              </div>
-            `)
-          );
-
-        marker.addTo(mapInstance);
-        return marker;
-      });
-
-      markersRef.current = newMarkers;
-    };
-
-    const fetchData = async () => {
-      if (!activeFilters.communalPlace) {
-        clearMarkers();
-        return;
-      }
-
+  
+    const cadastralSourceId = "cadastralMapSource";
+    const cadastralLayerId = "cadastralMapLayer";
+  
+    // Safe remove function with additional checks
+    const safeRemoveCadastralLayers = () => {
       try {
-        let response;
-        let options = {};
-
-        switch (activeFilters.communalPlace) {
-          case "art":
-            response = await fetch("/art_places.json");
-            options = {
-              markerClass: "art-marker",
-              icon: "art",
-              defaultName: "Art Place",
-              type: "Art",
-            };
-            break;
-          case "community_center":
-            response = await fetch("/community_centers.json");
-            options = {
-              markerClass: "community-center-marker",
-              icon: "community",
-              defaultName: "Community Center",
-              type: "Community Center",
-            };
-            break;
-          case "museum":
-            response = await fetch("/museum.json");
-            options = {
-              markerClass: "museum-marker",
-              icon: "museum",
-              defaultName: "Museum",
-              type: "Museum",
-            };
-            break;
-          case "place_of_worship":
-            response = await fetch("/place_of_worship.json");
-            options = {
-              markerClass: "place-of-worship-marker",
-              icon: "place_of_worship",
-              defaultName: "Place of Worship",
-              type: "Place of Worship",
-            };
-            break;
-          default:
-            clearMarkers();
-            return;
+        // Check if map instance still exists
+        if (mapInstance && !mapInstance._removed) {
+          // Check if layer exists before trying to remove it
+          if (mapInstance.getStyle() && mapInstance.getLayer(cadastralLayerId)) {
+            mapInstance.removeLayer(cadastralLayerId);
+          }
+          // Check if source exists before trying to remove it
+          if (mapInstance.getStyle() && mapInstance.getSource(cadastralSourceId)) {
+            mapInstance.removeSource(cadastralSourceId);
+          }
         }
-
-        const data = await response.json();
-        addMarkers(data, options);
       } catch (error) {
-        console.log("Error fetching communal places:", error);
-        clearMarkers();
+        console.log("Safe removal of cadastral layers failed:", error);
       }
     };
-
-    fetchData();
-
-    return () => {
-      clearMarkers();
+  
+    // Cleanup function to handle component unmounting
+    const cleanup = () => {
+      safeRemoveCadastralLayers();
     };
-  }, [activeFilters.communalPlace, mapInstance, clearMarkers]);
+  
+    // Add new layers based on selected cadastral map
+    const addCadastralLayers = async () => {
+      try {
+        if (activeFilters.cadastralMap === "khokana") {
+          // Check if map still exists before adding source and layer
+          if (mapInstance && !mapInstance._removed) {
+            if (!mapInstance.getSource(cadastralSourceId)) {
+              mapInstance.addSource(cadastralSourceId, {
+                type: "vector",
+                tiles: [KHOKANA_CONFIG.tileUrl],
+                bounds: KHOKANA_CONFIG.bounds,
+                minzoom: KHOKANA_CONFIG.minZoom,
+                maxzoom: KHOKANA_CONFIG.maxZoom,
+              });
+            }
+  
+            if (!mapInstance.getLayer(cadastralLayerId)) {
+              mapInstance.addLayer({
+                id: cadastralLayerId,
+                type: "line",
+                source: cadastralSourceId,
+                'source-layer': KHOKANA_CONFIG.sourceLayer,
+                paint: {
+                  "line-color": "#000000",
+                  "line-width": 1,
+                },
+              });
+            }
+  
+            mapInstance.fitBounds(KHOKANA_CONFIG.bounds, {
+              padding: 50,
+              maxZoom: 16,
+            });
+          }
+        } else if (activeFilters.cadastralMap === "sainbu") {
+          // Check if map still exists before adding source and layer
+          if (mapInstance && !mapInstance._removed) {
+            if (!mapInstance.getSource(cadastralSourceId)) {
+              mapInstance.addSource(cadastralSourceId, {
+                type: "vector",
+                tiles: [SAINBU_CONFIG.tileUrl],
+                bounds: SAINBU_CONFIG.bounds,
+                minzoom: SAINBU_CONFIG.minZoom,
+                maxzoom: SAINBU_CONFIG.maxZoom
+              });
+            }
+  
+            if (!mapInstance.getLayer(cadastralLayerId)) {
+              mapInstance.addLayer({
+                id: cadastralLayerId,
+                type: "line",
+                source: cadastralSourceId,
+                'source-layer': SAINBU_CONFIG.sourceLayer,
+                paint: {
+                  "line-color": "#000000",
+                  "line-width": 1
+                }
+              });
+            }
+  
+            mapInstance.fitBounds(SAINBU_CONFIG.bounds, {
+              padding: 50,
+              maxZoom: 16
+            });
+          }
+        } else if (activeFilters.cadastralMap === "bungamati") {
+          // Check if map still exists before adding source and layer
+          if (mapInstance && !mapInstance._removed) {
+            if (!mapInstance.getSource(cadastralSourceId)) {
+              mapInstance.addSource(cadastralSourceId, {
+                type: "vector",
+                tiles: [BUNGAMATI_CONFIG.tileUrl],
+                bounds: BUNGAMATI_CONFIG.bounds,
+                minzoom: BUNGAMATI_CONFIG.minZoom,
+                maxzoom: BUNGAMATI_CONFIG.maxZoom,
+              });
+            }
+  
+            if (!mapInstance.getLayer(cadastralLayerId)) {
+              mapInstance.addLayer({
+                id: cadastralLayerId,
+                type: "line",
+                source: cadastralSourceId,
+                'source-layer': BUNGAMATI_CONFIG.sourceLayer,
+                paint: {
+                  "line-color": "#000000",
+                  "line-width": 1,
+                },
+              });
+            }
+  
+            mapInstance.fitBounds(BUNGAMATI_CONFIG.bounds, {
+              padding: 50,
+              maxZoom: 16,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Error adding cadastral layers:", error);
+      }
+    };
+  
+    // Main execution
+    cleanup();
+    if (activeFilters.cadastralMap) {
+      addCadastralLayers();
+    }
+  
+    // Cleanup on unmount or when dependencies change
+    return cleanup;
+  }, [activeFilters.cadastralMap, mapInstance]);  
 
   // Watch for changes in ward boundary visibility
   useEffect(() => {
@@ -318,11 +405,17 @@ const Map = ({
     };
 
     if (wardBoundaryVisible) {
-      try {
-        if (!mapInstance.getSource("wardBoundary")) {
+      const fetchAndAddWardBoundary = async () => {
+        try {
+          const response = await fetch(WARD_BOUNDARY_GEOJSON);
+          const data = await response.json();
+
+          // Always remove existing layers before adding new ones
+          safeRemoveLayers();
+
           mapInstance.addSource("wardBoundary", {
             type: "geojson",
-            data: WARD_BOUNDARY_GEOJSON,
+            data: data,
           });
 
           mapInstance.addLayer({
@@ -335,10 +428,12 @@ const Map = ({
               "line-width": 3,
             },
           });
+        } catch (error) {
+          console.log("Error fetching or adding ward boundary:", error);
         }
-      } catch (error) {
-        console.log("Error adding ward boundary layers:", error);
-      }
+      };
+
+      fetchAndAddWardBoundary();
     } else {
       safeRemoveLayers();
     }
@@ -346,7 +441,7 @@ const Map = ({
     return () => {
       safeRemoveLayers();
     };
-  }, [wardBoundaryVisible, mapInstance]);
+  }, [wardBoundaryVisible, mapInstance, isSatellite]);
 
   // Watch for changes in road network visibility
   useEffect(() => {
@@ -366,11 +461,17 @@ const Map = ({
     };
 
     if (roadNetworkVisible) {
-      try {
-        if (!mapInstance.getSource("roadNetwork")) {
+      const fetchAndAddRoadNetwork = async () => {
+        try {
+          const response = await fetch(ROAD_NETWORK_GEOJSON);
+          const data = await response.json();
+
+          // Always remove existing layers before adding new ones
+          safeRemoveRoadLayers();
+
           mapInstance.addSource("roadNetwork", {
             type: "geojson",
-            data: ROAD_NETWORK_GEOJSON,
+            data: data,
           });
 
           mapInstance.addLayer({
@@ -392,14 +493,16 @@ const Map = ({
                 3,
                 "secondary_road",
                 2,
-                1.5, // default width for other road types
+                1.5,
               ],
             },
           });
+        } catch (error) {
+          console.log("Error fetching or adding road network:", error);
         }
-      } catch (error) {
-        console.log("Error adding road network layers:", error);
-      }
+      };
+
+      fetchAndAddRoadNetwork();
     } else {
       safeRemoveRoadLayers();
     }
@@ -407,7 +510,7 @@ const Map = ({
     return () => {
       safeRemoveRoadLayers();
     };
-  }, [roadNetworkVisible, mapInstance]);
+  }, [roadNetworkVisible, mapInstance, isSatellite]);
 
   // New useEffect for parcel layer
   useEffect(() => {
@@ -453,7 +556,7 @@ const Map = ({
                   };
 
                   const mappedCategory = landCategoryMap[activeFilters.landCategory];
-                  return feature.properties['dddd — Sheet1_जग्गाधनी'] === mappedCategory;
+                  return feature.properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनी'] === mappedCategory;
                 });
               }
 
@@ -471,7 +574,7 @@ const Map = ({
                 paint: {
                   "fill-color": [
                     "match",
-                    ["get", "dddd — Sheet1_जग्गाधनी"],
+                    ["get", "fasttract_connected_Final with connect — Sheet1_जग्गाधनी"],
                     "गुठी",
                     "#ff0000", // Bright red for Guthi
                     "गैर–नेवाः",
@@ -517,23 +620,26 @@ const Map = ({
                 const popupContent = `
                   <div>
                     <h3>Parcel Information</h3>
-                    <p>जग्गाधनीको नाम: ${properties['dddd — Sheet1_जग्गाधनीको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाबुको नाम: ${properties['dddd — Sheet1_जग्गाधनीको बाबुको नाम'] || 'N/A'}</p>
-                    <p>जग्गाधनीको बाजेको नाम: ${properties['dddd — Sheet1_जग्गाधनीको बाजेको नाम'] || 'N/A'}</p>
-                    <p>साविक ठेगाना÷ गा.वि.स.: ${properties['dddd — Sheet1_साविक ठेगाना÷ गा.वि.स.'] || 'N/A'}</p>
-                    <p>वार्ड नं.: ${properties['dddd — Sheet1_वार्ड नं.'] || 'N/A'}</p>
-                    <p>सिट नं.: ${properties['dddd — Sheet1_सिट नं.'] || 'N/A'}</p>
-                    <p>कित्ता नं.: ${properties['dddd — Sheet1_कित्ता नं.'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${properties['dddd — Sheet1_श्रेस्ता अनुसारको क्षेत्रफल११रो'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${properties['dddd — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१२आ'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${properties['dddd — Sheet1_श्रेस्ता अनुसारको क्षेत्रफलेपै'] || 'N/A'}</p>
-                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${properties['dddd — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१३दा'] || 'N/A'}</p>
-                    <p>अधिग्रहम गरिने क्षेत्रफल रो: ${properties['dddd — Sheet1_अधिग्रहम गरिने क्षेत्रफल१६रो'] || 'N/A'}</p>
-                    <p>अधिग्रहम गरिने क्षेत्रफल आ: ${properties['dddd — Sheet1_अधिग्रहम गरिने क्षेत्रफल१७आ'] || 'N/A'}</p>
-                    <p>अधिग्रहम गरिने क्षेत्रफल पै: ${properties['dddd — Sheet1_अधिग्रहम गरिने क्षेत्रफलपै'] || 'N/A'}</p>
-                    <p>अधिग्रहम गरिने क्षेत्रफल दा: ${properties['dddd — Sheet1_अधिग्रहम गरिने क्षेत्रफल१८।००दा'] || 'N/A'}</p>
-                    <p>कैफियत: ${properties['dddd — Sheet1_कैफियत'] || 'N/A'}</p>
-                    <p>जग्गाधनी: ${properties['dddd — Sheet1_जग्गाधनी'] || 'N/A'}</p>
+                    <p>जग्गाधनीको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको नाम'] || 'N/A'}</p>
+                    <p>जग्गाधनीको बाबुको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाबुको नाम'] || 'N/A'}</p>
+                    <p>जग्गाधनीको बाजेको नाम: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनीको बाजेको नाम'] || 'N/A'}</p>
+                    <p>साविक ठेगाना / गा.वि.स.: ${properties['fasttract_connected_Final with connect — Sheet1_साविक ठेगाना÷ गा.वि.स.'] || 'N/A'}</p>
+                    <p>वार्ड नं.: ${properties['fasttract_connected_Final with connect — Sheet1_वार्ड नं.'] || 'N/A'}</p>
+                    <p>सिट नं.: ${properties['fasttract_connected_Final with connect — Sheet1_सिट नं.'] || 'N/A'}</p>
+                    <p>कित्ता नं.: ${properties['fasttract_connected_Final with connect — Sheet1_कित्ता नं.'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${properties['fasttract_connected_Final with connect — Sheet1_ब.मि.'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफल११रो'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१२आ'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफलेपै'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${properties['fasttract_connected_Final with connect — Sheet1_श्रेस्ता अनुसारको क्षेत्रफले१३दा'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${properties['fasttract_connected_Final with connect — Sheet1_ब.मि._1'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१६रो'] || 'N/A'}</p>
+                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१७आ'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफलपै'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${properties['fasttract_connected_Final with connect — Sheet1_अधिग्रहम गरिने क्षेत्रफल१८।००दा'] || 'N/A'}</p>
+                    <p>कैफियत: ${properties['fasttract_connected_Final with connect — Sheet1_कैफियत'] || 'N/A'}</p>
+                    <p>जग्गाधनी: ${properties['fasttract_connected_Final with connect — Sheet1_जग्गाधनी'] || 'N/A'}</p>
+                    <p>Land Acquisition Notice: ${properties['Copy of Final_with_connect — Sheet1_Land acquisition notice'] || 'N/A'}</p>
                   </div>
                 `;
 
@@ -568,7 +674,7 @@ const Map = ({
     };
   }, [parcelLayerVisible, mapInstance, activeFilters.landCategory]);
 
-  // Add new useEffect for building footprint layer
+  // Watch for changes in building footprint visibility
   useEffect(() => {
     if (!mapInstance) return;
 
@@ -589,38 +695,44 @@ const Map = ({
     };
 
     if (buildingFootprintVisible) {
-      try {
-        if (!mapInstance.getSource("buildingFootprint")) {
+      const fetchAndAddBuildingFootprint = async () => {
+        try {
+          const response = await fetch(BUILDING_FOOTPRINT_GEOJSON);
+          const data = await response.json();
+
+          // Always remove existing layers before adding new ones
+          safeRemoveBuildingLayers();
+
           mapInstance.addSource("buildingFootprint", {
             type: "geojson",
-            data: BUILDING_FOOTPRINT_GEOJSON,
+            data: data,
           });
 
-          // Add fill layer for buildings
           mapInstance.addLayer({
             id: "buildingFootprintFill",
             type: "fill",
             source: "buildingFootprint",
             paint: {
-              "fill-color": "#8a2be2", // Purple color for buildings
+              "fill-color": "#8a2be2",
               "fill-opacity": 0.5,
             },
           });
 
-          // Add outline layer for buildings
           mapInstance.addLayer({
             id: "buildingFootprintOutline",
             type: "line",
             source: "buildingFootprint",
             paint: {
-              "line-color": "#4a148c", // Darker purple for outline
+              "line-color": "#4a148c",
               "line-width": 1,
             },
           });
+        } catch (error) {
+          console.log("Error fetching or adding building footprint:", error);
         }
-      } catch (error) {
-        console.log("Error adding building footprint layers:", error);
-      }
+      };
+
+      fetchAndAddBuildingFootprint();
     } else {
       safeRemoveBuildingLayers();
     }
@@ -628,9 +740,9 @@ const Map = ({
     return () => {
       safeRemoveBuildingLayers();
     };
-  }, [buildingFootprintVisible, mapInstance]);
+  }, [buildingFootprintVisible, mapInstance, isSatellite]);
 
-  // Add new useEffect for water resources layer
+  // Watch for changes in water resources visibility
   useEffect(() => {
     if (!mapInstance) return;
 
@@ -642,9 +754,6 @@ const Map = ({
         if (mapInstance.getLayer("waterResourcesOutline")) {
           mapInstance.removeLayer("waterResourcesOutline");
         }
-        if (mapInstance.getLayer("waterResourcesSymbol")) {
-          mapInstance.removeLayer("waterResourcesSymbol");
-        }
         if (mapInstance.getSource("waterResources")) {
           mapInstance.removeSource("waterResources");
         }
@@ -654,40 +763,46 @@ const Map = ({
     };
 
     if (waterResourcesVisible) {
-      try {
-        if (!mapInstance.getSource("waterResources")) {
+      const fetchAndAddWaterResources = async () => {
+        try {
+          const response = await fetch(WATER_RESOURCES_GEOJSON);
+          const data = await response.json();
+
+          // Always remove existing layers before adding new ones
+          safeRemoveWaterLayers();
+
           mapInstance.addSource("waterResources", {
             type: "geojson",
-            data: WATER_RESOURCES_GEOJSON,
+            data: data,
           });
 
-          // Add fill layer for water bodies (polygons)
           mapInstance.addLayer({
             id: "waterResourcesFill",
             type: "fill",
             source: "waterResources",
             filter: ["==", ["geometry-type"], "Polygon"],
             paint: {
-              "fill-color": "#4FC3F7", // Light blue color for water
+              "fill-color": "#4FC3F7",
               "fill-opacity": 0.7,
             },
           });
 
-          // Add outline layer for water bodies
           mapInstance.addLayer({
             id: "waterResourcesOutline",
             type: "line",
             source: "waterResources",
             filter: ["==", ["geometry-type"], "Polygon"],
             paint: {
-              "line-color": "#0288D1", // Darker blue for outline
+              "line-color": "#0288D1",
               "line-width": 1,
             },
           });
+        } catch (error) {
+          console.log("Error fetching or adding water resources:", error);
         }
-      } catch (error) {
-        console.log("Error adding water resources layers:", error);
-      }
+      };
+
+      fetchAndAddWaterResources();
     } else {
       safeRemoveWaterLayers();
     }
@@ -695,12 +810,137 @@ const Map = ({
     return () => {
       safeRemoveWaterLayers();
     };
-  }, [waterResourcesVisible, mapInstance]);
+  }, [waterResourcesVisible, mapInstance, isSatellite]);
+
+  // Watch for changes in historical places visibility
+  useEffect(() => {
+    if (!mapInstance) return;
+  
+    const safeRemoveHistoricalPlacesLayers = () => {
+      try {
+        if (mapInstance.getLayer("historicalPlacesSymbol")) {
+          mapInstance.removeLayer("historicalPlacesSymbol");
+        }
+        if (mapInstance.getLayer("historicalPlacesLabels")) {
+          mapInstance.removeLayer("historicalPlacesLabels");
+        }
+        if (mapInstance.getSource("historicalPlaces")) {
+          mapInstance.removeSource("historicalPlaces");
+        }
+      } catch (error) {
+        console.log("Error removing historical places layers:", error);
+      }
+    };
+  
+    if (historicalPlacesVisible) {
+      // Attempt to fetch and add the historical places layer
+      const fetchHistoricalPlaces = async () => {
+        try {
+          const response = await fetch(HISTORICAL_PLACES_GEOJSON);
+          const data = await response.json();
+          console.log("Historical Places Data:", data); // Log the data to verify
+  
+          // Check if the source has already been added
+          if (!mapInstance.getSource("historicalPlaces")) {
+            mapInstance.addSource("historicalPlaces", {
+              type: "geojson",
+              data: data,
+            });
+  
+            // Add circle layer for historical places
+            mapInstance.addLayer({
+              id: "historicalPlacesSymbol",
+              type: "circle",
+              source: "historicalPlaces",
+              paint: {
+                "circle-radius": 6,
+                "circle-color": "#FF6B6B", // Soft red color
+                "circle-stroke-width": 2,
+                "circle-stroke-color": "#D32F2F" // Darker red outline
+              },
+              layout: {
+                "visibility": "visible"
+              }
+            });
+  
+            // Add text labels for historical places
+            mapInstance.addLayer({
+              id: "historicalPlacesLabels",
+              type: "symbol",
+              source: "historicalPlaces",
+              layout: {
+                "text-field": ["get", "name"],
+                "text-font": ["Open Sans Regular"],
+                "text-offset": [0, 1.25],
+                "text-anchor": "top",
+                "text-size": 12,
+                "text-allow-overlap": false
+              },
+              paint: {
+                "text-color": "#000000",
+                "text-halo-color": "#FFFFFF",
+                "text-halo-width": 2
+              }
+            });
+  
+            // Add click interaction for historical places
+            mapInstance.on("click", "historicalPlacesSymbol", (e) => {
+              if (!e.features.length) return;
+  
+              const feature = e.features[0];
+              const coordinates = e.lngLat;
+  
+              // Create popup content based on historical place properties
+              const properties = feature.properties;
+              const popupContent = `
+                <div>
+                  <h3>Historical Place Information</h3>
+                  <p>Name: ${properties.Name || 'N/A'}</p>
+                  <p>Description: ${properties.description || 'N/A'}</p>
+                </div>
+              `;
+  
+              new maplibre.Popup()
+                .setLngLat(coordinates)
+                .setHTML(popupContent)
+                .addTo(mapInstance);
+            });
+  
+            // Change cursor on hover
+            mapInstance.on("mouseenter", "historicalPlacesSymbol", () => {
+              mapInstance.getCanvas().style.cursor = "pointer";
+            });
+  
+            mapInstance.on("mouseleave", "historicalPlacesSymbol", () => {
+              mapInstance.getCanvas().style.cursor = "";
+            });
+  
+            // If data is empty or no points, log a warning
+            if (!data.features || data.features.length === 0) {
+              console.warn("No historical places found in the GeoJSON file");
+            }
+          } else {
+            // If the source already exists, update its data
+            mapInstance.getSource("historicalPlaces").setData(data);
+          }
+        } catch (error) {
+          console.error("Error fetching historical places data:", error);
+        }
+      };
+  
+      fetchHistoricalPlaces();
+    } else {
+      safeRemoveHistoricalPlacesLayers();
+    }
+  
+    return () => {
+      safeRemoveHistoricalPlacesLayers();
+    };
+  }, [historicalPlacesVisible, mapInstance]);
 
   return (
     <div className="map-container">
       <div ref={mapContainer} className="map"></div>
-      <FontAwesomeIcon icon={faArtstation} />
     </div>
   );
 };

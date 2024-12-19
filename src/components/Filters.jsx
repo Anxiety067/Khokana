@@ -8,14 +8,13 @@ const Filters = ({ selectedFilters, onFilterChange, onApply, onClear }) => {
       <div className="filters-wrapper">
         <select 
           className="filter-select"
-          value={selectedFilters.communalPlace}
-          onChange={(e) => onFilterChange('communalPlace', e.target.value)}
+          value={selectedFilters.cadastralMap}
+          onChange={(e) => onFilterChange('cadastralMap', e.target.value)}
         >
-          <option value="">SELECT COMMUNAL PLACES</option>
-          <option value="art">Art</option>
-          <option value="community_center">Community Center</option>
-          <option value="museum">Museum</option>
-          <option value="place_of_worship">Place of Worship</option>
+          <option value="">SELECT CADASTRAL MAP</option>
+          <option value="khokana">Khokana</option>
+          <option value="bungamati">Bungamati</option>
+          <option value="sainbu">Sainbu</option>
         </select>
         
         <select 
@@ -27,11 +26,11 @@ const Filters = ({ selectedFilters, onFilterChange, onApply, onClear }) => {
           <option value="government">Government</option>
           <option value="guthi">Guthi</option>
           <option value="non_newar">Non-Newar</option>
-          <option value="mixed_non_newar">Mixed Non-Newar</option>
+          <option value="mixed_non_newar">Joint Non-Newar</option>
           <option value="newar">Newar</option>
-          <option value="mixed_newar">Mixed Newar</option>
+          <option value="mixed_newar">Joint Newar</option>
           <option value="institutional">Institutional</option>
-          <option value="community">Community</option>
+          <option value="community">Communal</option>
         </select>
         
         <button className="apply-button" onClick={onApply}>

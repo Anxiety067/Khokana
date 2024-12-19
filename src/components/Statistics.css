@@ -1,8 +1,10 @@
 .statistics-container {
   width: 20rem;
   background-color: #faf0e6;
-  padding: 1rem;
+  padding: 0.5rem;
   border-left: 1px solid #e5e7eb;
+  max-height: 100vh; /* Allow full viewport height */
+  overflow-y: auto; /* Enable vertical scrolling */
 }
 
 .statistics-content {

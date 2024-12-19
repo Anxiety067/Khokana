@@ -7,14 +7,15 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
     { name: 'Government', value: 94 },
     { name: 'Guthi', value: 132 },
     { name: 'Non-Newar', value: 205 },
-    { name: 'Mixed Non-Newar', value: 43 },
+    { name: 'Joint Non-Newar', value: 43 },
     { name: 'Newar', value: 676 },
-    { name: 'Mixed Newar', value: 206 },
+    { name: 'Joint Newar', value: 206 },
     { name: 'Institutional', value: 40 },
-    { name: 'Community', value: 1}
+    { name: 'Communal', value: 1},
+    { name: 'Unknown Ownership', value: 182 }
   ];
 
-  const COLORS = ['#32cd32', '#ff0000', '#0000ff', '#87cefa', '#ffd700', '#f0e68c', '#9C27B0', '#795548'];
+  const COLORS = ['#32cd32', '#ff0000', '#0000ff', '#87cefa', '#ffd700', '#f0e68c', '#9C27B0', '#795548', '#9E9E9E'];
 
   const renderCustomizedLabel = ({
     cx, cy, midAngle, innerRadius, outerRadius,
@@ -28,7 +29,7 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
       <text 
         x={x} 
         y={y} 
-        fill="white" 
+        fill="#f0ffff" 
         textAnchor="middle" 
         dominantBaseline="middle"
         className="value-label"
@@ -129,6 +130,16 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
                   onChange={() => onVectorLayerChange('waterResources')}
                 />
                 <label htmlFor="water-resources">Water Resources</label>
+              </div>
+
+              <div className="checkbox-item">
+                <input 
+                  type="checkbox"
+                  id="historical-places"
+                  checked={vectorLayers.historicalPlaces}
+                  onChange={() => onVectorLayerChange('historicalPlaces')}
+                />
+                <label htmlFor="historical-places">Historical Places</label>
               </div>
             </div>
           </div>
