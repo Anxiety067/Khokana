@@ -109,7 +109,7 @@ const Statistics = ({ vectorLayers, onVectorLayerChange }) => {
                   checked={vectorLayers.parcelLayer}
                   onChange={() => onVectorLayerChange('parcelLayer')}
                 />
-                <label htmlFor="water-resources">Parcel Boundary</label>
+                <label htmlFor="water-resources">Project-Affected Land Parcels</label>
               </div>
               
               <div className="checkbox-item">

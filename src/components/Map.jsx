@@ -14,7 +14,7 @@ const BUILDING_FOOTPRINT_GEOJSON = "/building_khokana.json";
 const WATER_RESOURCES_GEOJSON = "/water.json";
 const HISTORICAL_PLACES_GEOJSON = "/historical.geojson";
 const KHOKANA_CONFIG = {
-  tileUrl: "http://tiles.gallimap.com/public.khokana/{z}/{x}/{y}.pbf",
+  tileUrl: "https://tiles.gallimap.com/public.khokana/{z}/{x}/{y}.pbf",
   sourceLayer: "public.khokana",
   center: [85.29322814941406, 27.641535758972168],
   bounds: [
@@ -27,7 +27,7 @@ const KHOKANA_CONFIG = {
   maxZoom: 22,
 };
 const SAINBU_CONFIG = {
-  tileUrl: "http://tiles.gallimap.com/public.sainbu/{z}/{x}/{y}.pbf",
+  tileUrl: "https://tiles.gallimap.com/public.sainbu/{z}/{x}/{y}.pbf",
   sourceLayer: "public.sainbu",
   center: [85.30310440063477, 27.648791313171387],
   bounds: [
@@ -41,7 +41,7 @@ const SAINBU_CONFIG = {
 };
 
 const BUNGAMATI_CONFIG = {
-  tileUrl: "http://tiles.gallimap.com/public.bungamati/{z}/{x}/{y}.pbf",
+  tileUrl: "https://tiles.gallimap.com/public.bungamati/{z}/{x}/{y}.pbf",
   sourceLayer: "public.bungamati",
   center: [85.30072021484375, 27.61996555328369],
   bounds: [

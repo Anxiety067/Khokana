@@ -12,7 +12,7 @@ function App() {
     wardBoundary: false,
     roadNetwork: false,
     waterResources: false,
-    parcelLayer: false,
+    parcelLayer: true,
     buildingFootprint: false,
     historicalPlaces: false
   });
