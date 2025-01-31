@@ -3,7 +3,6 @@ import Navbar from './components/Navbar';
 import Filters from './components/Filters';
 import Map from './components/Map';
 import Statistics from './components/Statistics';
-import Datasets from './components/Datasets';
 import About from './components/About'
 
 function App() {
@@ -13,6 +12,7 @@ function App() {
     roadNetwork: false,
     waterResources: false,
     parcelLayer: true,
+    parcelLayer2019: false,
     buildingFootprint: false,
     historicalPlaces: false
   });
@@ -78,6 +78,7 @@ function App() {
                 roadNetworkVisible={vectorLayers.roadNetwork}
                 waterResourcesVisible={vectorLayers.waterResources}
                 parcelLayerVisible={vectorLayers.parcelLayer}
+                parcelLayer2019Visible={vectorLayers.parcelLayer2019}
                 buildingFootprintVisible={vectorLayers.buildingFootprint}
                 historicalPlacesVisible={vectorLayers.historicalPlaces}
                 activeFilters={appliedFilters} 
@@ -89,7 +90,6 @@ function App() {
             </div>
           </>
         )}
-        {activeSection === 'DATASETS' && <Datasets />}
         {activeSection === 'ABOUT' && <About />}
       </div>
     </div>

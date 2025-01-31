@@ -8,10 +8,10 @@ const Navbar = ({ activeSection, onSectionChange }) => {
         <div className="navbar-content">
           {/* Logo Section */}
           <div className="logo-section">
-            <div className="logo-text">CEMSOJ</div>
             <div className="portal-text">
-              <span>LAND</span>
-              <span>MAPPING</span>
+              <span>Mapping of Guthi and other lands affected by</span>
+              <span></span>
+            <div className="logo-text">Fast Track Expressway Project</div>
             </div>
           </div>
           
@@ -22,12 +22,6 @@ const Navbar = ({ activeSection, onSectionChange }) => {
               onClick={() => onSectionChange('MAP')}
             >
               MAP
-            </button>
-            <button 
-              className={`nav-button ${activeSection === 'DATASETS' ? 'active' : ''}`}
-              onClick={() => onSectionChange('DATASETS')}
-            >
-              DATASETS
             </button>
             <button 
               className={`nav-button ${activeSection === 'ABOUT' ? 'active' : ''}`}

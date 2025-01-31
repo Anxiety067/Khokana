@@ -9,7 +9,8 @@ const GALLI_MAPS_STYLE_URL =
   "https://map-init.gallimap.com/styles/light/style.json?accessToken=4ce1a22b-3b8b-4eeb-ba2f-51cb7448f559";
 const WARD_BOUNDARY_GEOJSON = "/merge_ward.json";
 const ROAD_NETWORK_GEOJSON = "/Road.json";
-const PARCEL_GEOJSON = "/2nd.geojson";
+const PARCEL_GEOJSON = "/merge.geojson";
+const PARCEL_2019_GEOJSON = "/2019_final.geojson"; 
 const BUILDING_FOOTPRINT_GEOJSON = "/building_khokana.json";
 const WATER_RESOURCES_GEOJSON = "/water.json";
 const HISTORICAL_PLACES_GEOJSON = "/historical.geojson";
@@ -106,6 +107,7 @@ const Map = ({
   wardBoundaryVisible,
   roadNetworkVisible,
   parcelLayerVisible,
+  parcelLayer2019Visible,
   buildingFootprintVisible,
   waterResourcesVisible,
   historicalPlacesVisible,
@@ -205,16 +207,8 @@ const Map = ({
     `;
 
     customAttribution.innerHTML = `
-  <div style="display: flex; align-items: center;">
-    <span>Powered by</span>
-    <img src="/galli_maps.jpg" alt="Galli Maps Logo" style="height: 22px; margin: 0 5px;" />
-  </div>
-  <div style="display: flex; align-items: center; justify-content: center; font-size: 0.9em; color: #555; margin: 5px 0;">
-    Satellite Map tiles by MapTiler servers, under the usage policy
-  </div>
-  <div style="display: flex; align-items: center;">
-    <span>Developed by</span>
-    <img src="/cemsoj.jpg" alt="Cemsoj Logo" style="height: 22px; margin: 0 5px;" />
+  <div style="display: flex; align-items: center; justify-content: center; font-size: 1em; color: #555; margin: 5px 0;">
+    © Satellite Map tiles by MapTiler servers, under the usage policy
   </div>
 `;
 
@@ -591,7 +585,7 @@ const Map = ({
                     "#32cd32", // Orange for Government
                     "सामुदायिक",
                     "#795548", // Brown for Community
-                    "#9E9E9E", // Grey for any unmatched types
+                    "#d8bfd8", // Grey for any unmatched types
                   ],
                   "fill-opacity": 0.5,
                 },
@@ -673,6 +667,171 @@ const Map = ({
       safeRemoveParcelLayers();
     };
   }, [parcelLayerVisible, mapInstance, activeFilters.landCategory]);
+
+  // Watch for changes in 2019 parcel layer visibility
+useEffect(() => {
+  if (!mapInstance) return;
+
+  const safeRemove2019ParcelLayers = () => {
+    try {
+      if (mapInstance.getLayer("parcel2019FillLayer")) {
+        mapInstance.removeLayer("parcel2019FillLayer");
+      }
+      if (mapInstance.getLayer("parcel2019BorderLayer")) {
+        mapInstance.removeLayer("parcel2019BorderLayer");
+      }
+      if (mapInstance.getSource("parcels2019")) {
+        mapInstance.removeSource("parcels2019");
+      }
+    } catch (error) {
+      console.log("Error removing 2019 parcel layers:", error);
+    }
+  };
+
+  if (parcelLayer2019Visible) {
+    try {
+      if (!mapInstance.getSource("parcels2019")) {
+        // Fetch GeoJSON data
+        fetch(PARCEL_2019_GEOJSON)
+          .then(response => response.json())
+          .then(data => {
+            // If a land category is selected, filter the features
+            let filteredData = { ...data };
+            if (activeFilters.landCategory) {
+              filteredData.features = data.features.filter(feature => {
+                // Map between filter values and GeoJSON property values
+                // Update this mapping based on your 2019 data structure
+                const landCategoryMap = {
+                  'government': 'सरकारी',
+                  'guthi': 'गुठी',
+                  'non_newar': 'गैर–नेवाः',
+                  'mixed_non_newar': 'गैर–नेवाः÷संयुक्त',
+                  'newar': 'नेवाः',
+                  'mixed_newar': 'नेवाः÷संयुक्त',
+                  'institutional': 'संस्थागत',
+                  'community': 'सामुदायिक'
+                };
+
+                const mappedCategory = landCategoryMap[activeFilters.landCategory];
+                return feature.properties['Copy of Final_with_connect — Sheet4_जग्गाधनी'] === mappedCategory;
+              });
+            }
+
+            // Add source with potentially filtered data
+            mapInstance.addSource("parcels2019", {
+              type: "geojson",
+              data: filteredData,
+            });
+
+            // Add fill layer for 2019 parcels
+            mapInstance.addLayer({
+              id: "parcel2019FillLayer",
+              type: "fill",
+              source: "parcels2019",
+              paint: {
+                "fill-color": [
+                  "match",
+                  ["get", "Copy of Final_with_connect — Sheet4_जग्गाधनी"], // Update to match your 2019 property field
+                  "गुठी",
+                  "#ff0000",
+                  "गैर–नेवाः",
+                  "#0000ff",
+                  "गैर–नेवाः÷संयुक्त",
+                  "#87cefa",
+                  "नेवाः",
+                  "#ffd700",
+                  "नेवाः÷संयुक्त",
+                  "#f0e68c",
+                  "संस्थागत",
+                  "#9C27B0",
+                  "सरकारी",
+                  "#32cd32",
+                  "सामुदायिक",
+                  "#795548",
+                  "#d8bfd8",
+                ],
+                "fill-opacity": 0.5,
+              },
+            });
+
+            // Add border layer for 2019 parcels with dotted pattern
+            mapInstance.addLayer({
+              id: "parcel2019BorderLayer",
+              type: "line",
+              source: "parcels2019",
+              paint: {
+                "line-color": "#100c08",
+                "line-width": 2,
+                "line-dasharray": [2, 2] // This creates the dotted pattern
+              },
+            });
+
+            // Add click interaction for 2019 parcels
+            mapInstance.on("click", "parcel2019FillLayer", (e) => {
+              if (!e.features.length) return;
+
+              const feature = e.features[0];
+              const coordinates = e.lngLat;
+
+              // Create popup content based on 2019 parcel properties
+              // Update these fields to match your 2019 GeoJSON properties
+              const properties = feature.properties;
+              const popupContent = `
+                <div>
+                  <h3>2019 Parcel Information</h3>
+                  <p>जग्गाधनीको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको नाम'] || 'N/A'}</p>
+                    <p>जग्गाधनीको बाबुको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको बाबुको नाम'] || 'N/A'}</p>
+                    <p>जग्गाधनीको बाजेको नाम: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनीको बाजेको नाम'] || 'N/A'}</p>
+                    <p>साविक ठेगाना / गा.वि.स.: ${properties['Copy of Final_with_connect — Sheet4_साविक ठेगाना÷ गा.वि.स.'] || 'N/A'}</p>
+                    <p>वार्ड नं.: ${properties['Copy of Final_with_connect — Sheet4_वार्ड नं.'] || 'N/A'}</p>
+                    <p>सिट नं.: ${properties['Copy of Final_with_connect — Sheet4_सिट नं.'] || 'N/A'}</p>
+                    <p>कित्ता नं.: ${properties['Copy of Final_with_connect — Sheet4_कित्ता नं.'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल ब.मि.: ${properties['Copy of Final_with_connect — Sheet4_ब.मि.'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल रो: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफल११रो'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल आ: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१२आ'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल पै: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफलेपै'] || 'N/A'}</p>
+                    <p>श्रेस्ता अनुसारको क्षेत्रफल दा: ${properties['Copy of Final_with_connect — Sheet4_श्रेस्ता अनुसारको क्षेत्रफले१३दा'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल ब.मि.: ${properties['Copy of Final_with_connect — Sheet4_ब.मि._1'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल रो: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१६रो'] || 'N/A'}</p>
+                    <p>अधिग्रहणअधिग्रहम गरिने क्षेत्रफल आ: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१७आ'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल पै: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफलपै'] || 'N/A'}</p>
+                    <p>अधिग्रहण गरिने क्षेत्रफल दा: ${properties['Copy of Final_with_connect — Sheet4_अधिग्रहम गरिने क्षेत्रफल१८।००दा'] || 'N/A'}</p>
+                    <p>कैफियत: ${properties['Copy of Final_with_connect — Sheet4_कैफियत'] || 'N/A'}</p>
+                    <p>जग्गाधनी: ${properties['Copy of Final_with_connect — Sheet4_जग्गाधनी'] || 'N/A'}</p>
+                    <p>Land Acquisition Notice: ${properties['Copy of Final_with_connect — Sheet4_Land acquisition notice'] || 'N/A'}</p>
+                </div>
+              `;
+
+              new maplibre.Popup()
+                .setLngLat(coordinates)
+                .setHTML(popupContent)
+                .addTo(mapInstance);
+            });
+
+            // Change cursor on hover
+            mapInstance.on("mouseenter", "parcel2019FillLayer", () => {
+              mapInstance.getCanvas().style.cursor = "pointer";
+            });
+
+            mapInstance.on("mouseleave", "parcel2019FillLayer", () => {
+              mapInstance.getCanvas().style.cursor = "";
+            });
+          })
+          .catch(error => {
+            console.log("Error fetching or processing 2019 parcel data:", error);
+          });
+      }
+    } catch (error) {
+      console.log("Error adding 2019 parcel layers:", error);
+    }
+  } else {
+    safeRemove2019ParcelLayers();
+  }
+
+  return () => {
+    safeRemove2019ParcelLayers();
+  };
+}, [parcelLayer2019Visible, mapInstance, activeFilters.landCategory]);
 
   // Watch for changes in building footprint visibility
   useEffect(() => {
